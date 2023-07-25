@@ -1,6 +1,4 @@
 import os
-
-import lightning
 import torch
 import logging
 from util import utils
