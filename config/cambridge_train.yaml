@@ -39,6 +39,8 @@ transposenet:
   lr_scheduler_gamma: 0.1
   lr_scheduler_patience: 50
   latent_dim: 1024
-  decoder_dim: 256
+  decoder_dim: 512
   heads: 8
   depth: 6
+  freeze: False
+  freeze_exclude: ['orient_vit', 'orient_fc']
