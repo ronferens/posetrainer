@@ -82,7 +82,7 @@ def main(cfg) -> None:
     logging.info("Start {} with {}".format(cfg.inputs.model_name, cfg.inputs.mode))
     logging.info("Using dataset: {}".format(cfg.inputs.dataset_path))
 
-    if len(cfg[cfg.inputs.model_name].freeze_exclude):
+    if cfg[cfg.inputs.model_name].freeze:
         utils.freeze_model_components(model, cfg[cfg.inputs.model_name].freeze_exclude)
 
     # Printing the model
