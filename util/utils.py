@@ -2,7 +2,7 @@ import logging
 import logging.config
 import PIL
 import json
-from os.path import join, exists, split, realpath, basename
+from os.path import join, exists, split, realpath
 import time
 from os import makedirs, getcwd
 import torch
@@ -13,8 +13,10 @@ from torchvision import transforms
 from omegaconf import OmegaConf
 import os
 from fnmatch import fnmatch
-import typing
+from typing import List
 import re
+import torch.nn as nn
+from collections import OrderedDict
 
 
 ##########################
@@ -71,7 +73,7 @@ def init_logger(outpath: str = None, suffix: str = None) -> str:
         return log_path
 
 
-def get_checkpoint_list(path: str) -> typing.List[str]:
+def get_checkpoint_list(path: str) -> List[str]:
     ckpts_list = {'ckpts': {}}
     for path, subdirs, files in os.walk(path):
         for name in sorted(files):
@@ -83,6 +85,113 @@ def get_checkpoint_list(path: str) -> typing.List[str]:
                     ckpts_list['last'] = join(path, name)
 
     return ckpts_list
+
+
+def summary_string(model, input_size, batch_size=-1, device=torch.device('cuda'), dtypes=None):
+    # Reference: https://github.com/sksq96/pytorch-summary
+    if dtypes is None:
+        dtypes = [torch.FloatTensor]*len(input_size)
+
+    summary_str = []
+
+    def register_hook(module):
+        def hook(module, input, output):
+            class_name = str(module.__class__).split(".")[-1].split("'")[0]
+            module_idx = len(summary)
+
+            m_key = "%s-%i" % (class_name, module_idx + 1)
+            summary[m_key] = OrderedDict()
+            summary[m_key]["input_shape"] = list(input[0].size())
+            summary[m_key]["input_shape"][0] = batch_size
+            if isinstance(output, (list, tuple)):
+                summary[m_key]["output_shape"] = [
+                    [-1] + list(o.size())[1:] for o in output
+                ]
+            else:
+                summary[m_key]["output_shape"] = list(output.size())
+                summary[m_key]["output_shape"][0] = batch_size
+
+            params = 0
+            if hasattr(module, "weight") and hasattr(module.weight, "size"):
+                params += torch.prod(torch.LongTensor(list(module.weight.size())))
+                summary[m_key]["trainable"] = module.weight.requires_grad
+            if hasattr(module, "bias") and hasattr(module.bias, "size"):
+                params += torch.prod(torch.LongTensor(list(module.bias.size())))
+            summary[m_key]["nb_params"] = params
+
+        if (
+            not isinstance(module, nn.Sequential)
+            and not isinstance(module, nn.ModuleList)
+        ):
+            hooks.append(module.register_forward_hook(hook))
+
+    # multiple inputs to the network
+    if isinstance(input_size, tuple):
+        input_size = [input_size]
+
+    # batch_size of 2 for batchnorm
+    x = [torch.rand(2, *in_size).type(dtype).to(device=device)
+         for in_size, dtype in zip(input_size, dtypes)]
+
+    # create properties
+    summary = OrderedDict()
+    hooks = []
+
+    # register hook
+    model.apply(register_hook)
+
+    # make a forward pass
+    # print(x.shape)
+    model(*x)
+
+    # remove these hooks
+    for h in hooks:
+        h.remove()
+
+    summary_str.append("----------------------------------------------------------------")
+    line_new = "{:<20}  {:<25} {:<15}".format(
+        "Layer (type)", "Output Shape", "Param #")
+    summary_str.append(line_new)
+    summary_str.append("================================================================")
+    total_params = 0
+    total_output = 0
+    trainable_params = 0
+    for layer in summary:
+        # input_shape, output_shape, trainable, nb_params
+        line_new = "{:<20}  {:<25} {:<15}".format(
+            layer,
+            str(summary[layer]["output_shape"]),
+            "{0:,}".format(summary[layer]["nb_params"]),
+        )
+        total_params += summary[layer]["nb_params"]
+
+        total_output += np.prod(summary[layer]["output_shape"])
+        if "trainable" in summary[layer]:
+            if summary[layer]["trainable"] == True:
+                trainable_params += summary[layer]["nb_params"]
+        summary_str.append(line_new)
+
+    # assume 4 bytes/number (float on cuda).
+    total_input_size = abs(np.prod(sum(input_size, ()))
+                           * batch_size * 4. / (1024 ** 2.))
+    total_output_size = abs(2. * total_output * 4. /
+                            (1024 ** 2.))  # x2 for gradients
+    total_params_size = abs(total_params * 4. / (1024 ** 2.))
+    total_size = total_params_size + total_output_size + total_input_size
+
+    summary_str.append("================================================================")
+    summary_str.append("Total params: {0:,}".format(total_params))
+    summary_str.append("Trainable params: {0:,}".format(trainable_params))
+    summary_str.append("Non-trainable params: {0:,}".format(total_params -
+                                                        trainable_params))
+    summary_str.append("----------------------------------------------------------------")
+    summary_str.append("Input size (MB): %0.2f" % total_input_size)
+    summary_str.append("Forward/backward pass size (MB): %0.2f" % total_output_size)
+    summary_str.append("Params size (MB): %0.2f" % total_params_size)
+    summary_str.append("Estimated Total Size (MB): %0.2f" % total_size)
+    summary_str.append("----------------------------------------------------------------")
+    # return summary
+    return summary_str, (total_params, trainable_params)
 
 
 ##########################
@@ -139,3 +248,21 @@ test_transforms = {
                                                          std=[0.229, 0.224, 0.225])
                                     ])
 }
+
+
+##########################
+# Evaluation utils
+##########################
+def freeze_model_components(model: torch.nn.Module, freeze_exclude: List[str]):
+    for name, parameter in model.named_parameters():
+        # Setting whether to freeze the parameter or not
+        freeze_param = True
+        for phrase in freeze_exclude:
+            # Excluding parameter if specified
+            if phrase in name:
+                freeze_param = False
+                break
+
+        # Freezing parameter
+        if freeze_param:
+            parameter.requires_grad_(False)
