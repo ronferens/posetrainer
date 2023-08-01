@@ -6,7 +6,6 @@ from models.pose_regressors import load_model_from_checkpoint
 from torch.utils.tensorboard import SummaryWriter
 import hydra
 import lightning as pl
-from lightning.pytorch.loggers import TensorBoardLogger
 import pandas as pd
 from os.path import join, basename
 import plotly
@@ -58,9 +57,7 @@ def main(cfg) -> None:
         # Set the seeds and the device
         pl.seed_everything()
 
-        logger = TensorBoardLogger('tb_logs', name='pose_framework_' + utils.get_stamp_from_log(), default_hp_metric=False)
-
-        tester = pl.Trainer(accelerator='auto', devices=1, logger=logger)
+        tester = pl.Trainer(accelerator='auto', devices=1)
         ckpt_res = tester.test(model, test_dataloader)
         batch_eval_results.append([basename(model_path).split('.')[0],
                                    model_path,
