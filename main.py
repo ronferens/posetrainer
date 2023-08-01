@@ -86,7 +86,10 @@ def main(cfg) -> None:
         utils.freeze_model_components(model, cfg[cfg.inputs.model_name].freeze_exclude)
 
     # Printing the model
-    result, params_info = utils.summary_string(model, (3, 224, 224), batch_size=cfg.general.batch_size, device='cpu')
+    result, params_info = utils.summary_string(model,
+                                               (3, 224, 224),
+                                               batch_size=cfg.general.batch_size,
+                                               device=model.device.type)
     for line in result:
         logging.info(line)
 
