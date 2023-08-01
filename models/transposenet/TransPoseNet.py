@@ -16,8 +16,8 @@ class TransPoseNet(BasePoseLightningModule):
         self.config = config
 
         # The projection of the activation map before going into the Transformer's encoder
-        self.trans_in_encoder = nn.Conv2d(112, 256, kernel_size=1)
-        self.orient_encoder = nn.Conv2d(40, 256, kernel_size=1)
+        self.trans_in_encoder = nn.Conv2d(112, self.config.get('decoder_dim'), kernel_size=1)
+        self.orient_encoder = nn.Conv2d(40, self.config.get('decoder_dim'), kernel_size=1)
 
         # Translation and orientation encoders
         self.decoder_dim = config.get('decoder_dim')
