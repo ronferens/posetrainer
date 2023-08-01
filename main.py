@@ -82,6 +82,14 @@ def main(cfg) -> None:
     logging.info("Start {} with {}".format(cfg.inputs.model_name, cfg.inputs.mode))
     logging.info("Using dataset: {}".format(cfg.inputs.dataset_path))
 
+    if len(cfg[cfg.inputs.model_name].freeze_exclude):
+        utils.freeze_model_components(model, cfg[cfg.inputs.model_name].freeze_exclude)
+
+    # Printing the model
+    result, params_info = utils.summary_string(model, (3, 224, 224), batch_size=cfg.general.batch_size, device='cpu')
+    for line in result:
+        logging.info(line)
+
     # --------------------
     # Trainer
     # --------------------
