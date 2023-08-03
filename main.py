@@ -100,7 +100,7 @@ def main(cfg) -> None:
     pl.seed_everything()
     trainer = None
 
-    logger = TensorBoardLogger('tb_logs', name='pose_framework_' + utils.get_stamp_from_log(), default_hp_metric=False)
+    logger = TensorBoardLogger('tb_logs', name='posetrainer_' + utils.get_stamp_from_log(), default_hp_metric=False)
 
     if cfg.inputs.mode == 'train':
         # Training the model
