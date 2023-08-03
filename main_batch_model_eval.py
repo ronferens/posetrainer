@@ -10,6 +10,7 @@ import pandas as pd
 from os.path import join, basename
 import plotly
 import plotly.graph_objects as go
+from lightning.pytorch.loggers import TensorBoardLogger
 
 
 @hydra.main(version_base=None, config_path="config", config_name="test")
@@ -57,7 +58,10 @@ def main(cfg) -> None:
         # Set the seeds and the device
         pl.seed_everything()
 
-        tester = pl.Trainer(accelerator='auto', devices=1)
+        logger = TensorBoardLogger('tb_logs_batch_eval',
+                                   name='posetrainer_batch_eval' + utils.get_stamp_from_log(),
+                                   default_hp_metric=False)
+        tester = pl.Trainer(accelerator='auto', devices=1, logger=logger)
         ckpt_res = tester.test(model, test_dataloader)
         batch_eval_results.append([basename(model_path).split('.')[0],
                                    model_path,
