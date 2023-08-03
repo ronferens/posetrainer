@@ -106,7 +106,7 @@ class BasePoseLightningModule(pl.LightningModule):
         self._test_step_outputs = self._reset_accumulated_outputs()
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self._cfg.get('lr'))
+        optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, self.parameters()), lr=self._cfg.get('lr'))
 
         # Setting learning-rate scheduler - Reduce On Plateau
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
