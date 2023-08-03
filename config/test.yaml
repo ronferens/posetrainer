@@ -4,6 +4,6 @@ inputs:
   dataset_path: '/media/dev/data/datasets/cambridge'
   testset_path: './datasets/CambridgeLandmarks/abs_cambridge_pose_sorted.csv_ShopFacade_test.csv'
   checkpoint_path: null
-  models_path: '/media/dev/storage2/pose_framework/run_25_07_23_12_51/ckpts/best'
+  models_path: null
   models_to_evaluate: null
   output_path: '/media/dev/storage2/posetrainer'
