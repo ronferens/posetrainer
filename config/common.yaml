@@ -5,8 +5,8 @@ defaults:
 
 general:
   n_freq_print: 5
-  n_freq_checkpoint: 25
+  n_freq_checkpoint: 50
   start_save_epoch: 200
   ckpt_dir_name: 'ckpts'
   batch_size: 8
-  n_epochs: 500
+  n_epochs: 600
