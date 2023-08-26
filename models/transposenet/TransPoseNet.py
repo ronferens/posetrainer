@@ -22,7 +22,7 @@ class TransPoseNet(BasePoseLightningModule):
         # Translation and orientation encoders
         self.decoder_dim = config.get('decoder_dim')
         self.trans_vit = SimpleViT(image_size=14,
-                                   patch_size=1,
+                                   patch_size=self.config.get('trans_patch_size'),
                                    num_classes=self.config.get('latent_dim'),
                                    dim=self.config.get('decoder_dim'),
                                    depth=self.config.get('depth'),
@@ -31,7 +31,7 @@ class TransPoseNet(BasePoseLightningModule):
                                    mlp_dim=self.config.get('decoder_dim')
                                    )
         self.orient_vit = SimpleViT(image_size=28,
-                                    patch_size=1,
+                                    patch_size=self.config.get('orient_patch_size'),
                                     num_classes=self.config.get('latent_dim'),
                                     dim=self.config.get('decoder_dim'),
                                     depth=self.config.get('depth'),
@@ -52,12 +52,12 @@ class TransPoseNet(BasePoseLightningModule):
 
         # Translation branch forward pass
         trans_input = self.trans_in_encoder(src_t)
-        x_trans = F.gelu(self.trans_vit(trans_input))
+        x_trans = F.silu(self.trans_vit(trans_input))
         p_x = self.trans_fc(x_trans)
 
         # Orientation branch forward pass
         orient_input = self.orient_encoder(src_orient)
-        x_orient = F.gelu(self.orient_vit(orient_input))
+        x_orient = F.silu(self.orient_vit(orient_input))
         p_q = self.orient_fc(x_orient)
 
         return torch.cat((p_x, p_q), dim=1)
