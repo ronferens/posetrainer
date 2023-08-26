@@ -29,18 +29,21 @@ transposenet:
   backbone_path: './models/backbones/efficientnet/efficient-net-b0.pth'
   loss:
     learnable: True
-    s_x: -3
+    s_x: -3.0
     s_q: -6.5
     norm: 2
   lr: 1e-4
   min_lr: 1e-6
   weight_decay: 1e-4
   eps: 1e-10
-  lr_scheduler_gamma: 0.75
+  lr_scheduler_gamma: 0.1
   lr_scheduler_patience: 25
+  lr_scheduler_step_size: 200
   latent_dim: 1024
-  decoder_dim: 512
+  decoder_dim: 256
   heads: 8
   depth: 6
+  trans_patch_size: 2
+  orient_patch_size: 4
   freeze: False
   freeze_exclude: ['trans_in_encoder', 'trans_vit', 'trans_fc']
